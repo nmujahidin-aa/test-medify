@@ -8,6 +8,8 @@ use App\Models\Category;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use App\Exports\MasterItemsExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class MasterItemsController extends Controller
 {
@@ -166,6 +168,14 @@ class MasterItemsController extends Controller
             $item->jenis = $this->getRandomJenis();
             $item->save();
         }
+    }
+
+    public function export()
+    {
+        return Excel::download(
+            new MasterItemsExport,
+            'master-items.xlsx'
+        );
     }
 
     private function getRandomSupplier()

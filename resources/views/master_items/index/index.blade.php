@@ -12,6 +12,11 @@
 
                 <div class="card-body">
                     @include('master_items.index.filter')
+
+                    <a href="{{ route('master-items.export') }}"
+                    class="btn btn-success mb-3">
+                    📥 Download Excel
+                    </a>
                     @include('master_items.index.table')
                 </div>
             </div>
