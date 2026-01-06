@@ -1,10 +1,8 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
-
 <script>
 let table;
-
 function formatRupiah(angka) {
     return Number(angka || 0).toLocaleString('id-ID');
 }
@@ -12,19 +10,18 @@ function formatRupiah(angka) {
 $(document).ready(function () {
 
     table = $('#table-master').DataTable({
-        searching: false, // FILTER via AJAX
+        searching: false,
         ordering: true,
         order: [[0, 'desc']],
         responsive: true,
         columnDefs: [
-            { orderable: false, targets: [1, 7] } // foto & aksi
+            { orderable: false, targets: [6] }
         ]
     });
 
     getData();
 });
 
-// tombol filter
 $(document).on('click', '.btn-get-data', function () {
     getData();
 });
@@ -63,7 +60,6 @@ function getData() {
                     formatRupiah(item.harga_beli),
                     formatRupiah(Math.round(hargaJual)),
                     item.supplier ?? '-',
-
                     `<a href="{{ url('master-items/view') }}/${item.kode}"
                         class="btn btn-sm btn-outline-primary">
                         👁 View
