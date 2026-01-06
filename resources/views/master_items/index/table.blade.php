@@ -11,6 +11,5 @@
                 <th>Aksi</th>
             </tr>
         </thead>
-
     </table>
 </div>

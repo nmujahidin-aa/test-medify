@@ -11,8 +11,8 @@
     <div class="form-group">
         <label>Foto</label>
         <input type="file" class="form-control" name="images" accept="image/*">
-        @if(isset($item) && isset($item['images']))
-            <img src="{{ asset('storage/'.$item['images']) }}"
+        @if(!empty($item->images))
+            <img src="{{ asset('storage/'.$item->images) }}"
                 alt="Foto Barang"
                 style="max-width: 200px; margin-top: 10px;">
         @endif
@@ -57,9 +57,19 @@
 
     <div class="form-group">
         <label>Kategori</label>
+        @php
+            $selectedKategori = old(
+                'kategori_id',
+                $item->category?->pluck('id')->toArray() ?? []
+            );
+        @endphp
+
         <select name="kategori_id[]" class="form-control" multiple>
             @foreach($category as $cat)
-                <option value="{{ $cat->id }}" @selected(in_array($cat->id, old('kategori_id', $item->category->pluck('id')->toArray() ?? [])))>{{ $cat->nama }}</option>
+                <option value="{{ $cat->id }}"
+                    @selected(in_array($cat->id, $selectedKategori))>
+                    {{ $cat->nama }}
+                </option>
             @endforeach
         </select>
     </div>

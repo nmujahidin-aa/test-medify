@@ -67,9 +67,9 @@ class MasterItemsController extends Controller
     {
         $category = $this->category::orderBy('nama')->get();
         if ($method == 'new') {
-            $item = [];
+            $item = new $this->masterItem();
         } else {
-            $item = $this->masterItem::find($id);
+            $item = $this->masterItem::with('category')->findOrFail($id);
         }
 
         $data = [
@@ -89,36 +89,57 @@ class MasterItemsController extends Controller
     public function formSubmit(Request $request, $method, $id = 0)
     {
         $validated = $request->validate([
-            'nama' => 'required',
-            'harga_beli' => 'required|numeric',
-            'laba' => 'required|numeric',
-            'supplier' => 'required',
-            'jenis' => 'required',
+            'nama'        => 'required',
+            'harga_beli'  => 'required|numeric',
+            'laba'        => 'required|numeric',
+            'supplier'    => 'required',
+            'jenis'       => 'required',
             'kategori_id' => 'nullable|array',
-            'images' => 'nullable|image|max:2048',
+            'images'      => 'nullable|image|max:2048',
         ]);
 
-        $item = $method === 'edit' ? $this->masterItem::find($id) : new $this->masterItem();
-        if($method === 'new'){
-            $item->kode = str_pad($this->masterItem::count('id') + 1, 5, '0', STR_PAD_LEFT);
+        $item = $method === 'edit'
+            ? $this->masterItem::findOrFail($id)
+            : new $this->masterItem();
+
+        if ($method === 'new') {
+            $item->kode = str_pad(
+                $this->masterItem::max('id') + 1,
+                5,
+                '0',
+                STR_PAD_LEFT
+            );
         }
 
-        $item->fill($validated);
+        $item->fill([
+            'nama'       => $validated['nama'],
+            'harga_beli' => $validated['harga_beli'],
+            'laba'       => $validated['laba'],
+            'supplier'   => $validated['supplier'],
+            'jenis'      => $validated['jenis'],
+        ]);
 
         if ($request->hasFile('images')) {
-
-            if ($method === 'edit' && $item->images && Storage::disk('public')->exists($item->images)) {
+            if ($method === 'edit'
+                && $item->images
+                && Storage::disk('public')->exists($item->images)
+            ) {
                 Storage::disk('public')->delete($item->images);
             }
 
-            $path = $request->file('images')->store('master_items', 'public');
-            $item->images = $path;
+            $item->images = $request
+                ->file('images')
+                ->store('master_items', 'public');
         }
+
         $item->save();
-        if(isset($validated['kategori_id'])){
+
+        if (!empty($validated['kategori_id'])) {
             $item->category()->sync($validated['kategori_id']);
         }
-        return redirect('master-items');
+
+        return redirect('master-items')
+            ->with('success', 'Data berhasil disimpan');
     }
 
     public function delete($id)
