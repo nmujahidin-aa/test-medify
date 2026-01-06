@@ -4,82 +4,148 @@ namespace App\Http\Controllers;
 
 use App\Models\MasterItem;
 use Illuminate\Http\Request;
+use App\Models\Category;
+use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 class MasterItemsController extends Controller
 {
+
+    protected $view;
+    protected $masterItem;
+    protected $category;
+
+    public function __construct(){
+        $this->view = 'master_items.';
+        $this->masterItem = new MasterItem();
+        $this->category = new Category();
+    }
     public function index()
     {
-        return view('master_items.index.index');
+        $category = $this->category::orderBy('nama')->get();
+        $items = $this->masterItem::with('category')->orderBy('id', 'desc')->limit(5)->get();
+
+        $data = [
+            'category' => $category,
+            'items' => $items,
+        ];
+
+        return view($this->view . 'index.index', $data);
     }
 
     public function search(Request $request)
     {
-        $kode = $request->kode;
-        $nama = $request->nama;
-        $hargamin = $request->hargamin;
-        $hargamax = $request->hargamax;
+        $query = $this->masterItem::query();
+        if($request->filled('kode')){
+            $query->where('kode', $request->kode);
+        }
+        if($request->filled('nama')){
+            $query->where('nama', $request->nama);
+        }
+        if($request->filled('hargamin')){
+            $query->where('harga_beli', '>=', $request->hargamin);
+        }
+        if($request->filled('hargamax')){
+            $query->where('harga_beli', '<=', $request->hargamax);
+        }
+        if($request->filled('categori_id')){
+            $query->whereHas('category', function($q) use ($request){
+                $q->where('category_item_id', $request->categori_id);
+            });
+        }
 
-        $data_search = MasterItem::query();
-
-        if (!empty($kode)) $data_search = $data_search->where('kode', $kode);
-        if (!empty($nama)) $data_search = $data_search->where('nama', 'LIKE', '%' . $nama . '%');
-        if (!empty($hargamin)) $data_search = $data_search->where('harga_beli', '>=', $hargamin)->where('harga_beli', '<=', $hargamax);
-
-        $data_search = $data_search->select('kode', 'nama', 'jenis', 'harga_beli', 'laba', 'supplier')->orderBy('id')->get();
-
+        $data = $query->select('kode', 'nama', 'jenis', 'harga_beli', 'laba', 'supplier')->orderBy('id', 'desc')->get();
 
         return json_encode([
             'status' => 200,
-            'data' => $data_search
+            'data' => $data,
         ]);
     }
 
     public function formView($method, $id = 0)
     {
+        $category = $this->category::orderBy('nama')->get();
         if ($method == 'new') {
             $item = [];
         } else {
-            $item = MasterItem::find($id);
+            $item = $this->masterItem::find($id);
         }
-        $data['item'] = $item;
-        $data['method'] = $method;
-        return view('master_items.form.index', $data);
+
+        $data = [
+            'category' => $category,
+            'item' => $item,
+            'method' => $method,
+        ];
+        return view($this->view .'form.index', $data);
     }
 
     public function singleView($kode)
     {
-        $data['data'] = MasterItem::where('kode', $kode)->first();
-        return view('master_items.single.index', $data);
+        $data['data'] = $this->masterItem::where('kode', $kode)->firstOrFail();
+        return view($this->view . 'single.index', $data);
     }
 
     public function formSubmit(Request $request, $method, $id = 0)
     {
-        if ($method == 'new') {
-            $data_item = new MasterItem;
-            $kode = MasterItem::count('id');
-            $kode = $kode + 1;
-            $kode = str_pad($kode, 5, '0', STR_PAD_LEFT);
-            sleep(3);
-        } else {
-            $data_item = MasterItem::find($id);
-            $kode = $data_item->kode;
+        $validated = $request->validate([
+            'nama' => 'required',
+            'harga_beli' => 'required|numeric',
+            'laba' => 'required|numeric',
+            'supplier' => 'required',
+            'jenis' => 'required',
+            'kategori_id' => 'nullable|array',
+            'images' => 'nullable|image|max:2048',
+        ]);
+
+        $item = $method === 'edit' ? $this->masterItem::find($id) : new $this->masterItem();
+        if($method === 'new'){
+            $item->kode = str_pad($this->masterItem::count('id') + 1, 5, '0', STR_PAD_LEFT);
         }
 
-        $data_item->nama = $request->nama;
-        $data_item->harga_beli = $request->harga_beli;
-        $data_item->laba = $request->laba;
-        $data_item->kode = $kode;
-        $data_item->supplier = $request->supplier;
-        $data_item->jenis = $request->jenis;
-        $data_item->save();
+        $item->fill($validated);
 
+        if ($request->hasFile('images')) {
+
+            if ($method === 'edit' && $item->images && Storage::disk('public')->exists($item->images)) {
+                Storage::disk('public')->delete($item->images);
+            }
+
+            $path = $request->file('images')->store('master_items', 'public');
+            $item->images = $path;
+        }
+        $item->save();
+        if(isset($validated['kategori_id'])){
+            $item->category()->sync($validated['kategori_id']);
+        }
         return redirect('master-items');
     }
 
     public function delete($id)
     {
-        MasterItem::find($id)->delete();
-        return redirect('master-items');
+        $item = $this->masterItem::findOrFail($id);
+        $item->delete();
+        return redirect()
+            ->route('master-items.index')
+            ->with('success', 'Data berhasil dihapus');
+    }
+
+    public function print($id)
+    {
+        $category = $this->category::with('items')->findOrFail($id);
+
+        $data = [
+            'category' => $category,
+            'items' => $category->items,
+            'printed_at' => Carbon::now()->format('d-m-Y H:i:s'),
+        ];
+
+        $pdf = Pdf::loadView('category-items.pdf', $data)
+                ->setPaper('A4', 'portrait');
+
+        return $pdf->download(
+            'kategori-'.$category->kode.'.pdf'
+        );
     }
 
     public function updateRandomData()

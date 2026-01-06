@@ -1,4 +1,4 @@
-<form method="POST">
+<form method="POST" enctype="multipart/form-data">
     @csrf
     @if($method == 'edit')
     <div class="form-group">
@@ -6,6 +6,17 @@
         <input type="text" class="form-control" name="kode_barang" required readonly value="{{$item->kode ?? ''}}">
     </div>
     @endif
+
+
+    <div class="form-group">
+        <label>Foto</label>
+        <input type="file" class="form-control" name="images" accept="image/*">
+        @if(isset($item) && isset($item['images']))
+            <img src="{{ asset('storage/'.$item['images']) }}"
+                alt="Foto Barang"
+                style="max-width: 200px; margin-top: 10px;">
+        @endif
+    </div>
 
     <div class="form-group">
         <label>Nama</label>
@@ -22,29 +33,34 @@
         <input type="number" class="form-control" name="laba" required  value="{{$item->laba ?? ''}}">
     </div>
 
-    @php $selected = $item->supplier ?? ''; @endphp
+    @php $supplier = old('supplier', $item->supplier ?? ''); @endphp
     <div class="form-group">
         <label>Supplier</label>
         <select class="form-control" required name="supplier">
-            <option @if($selected == '') selected @endif value="">--Pilih--</option>
-            <option @if($selected == 'Tokopaedi') selected @endif>Tokopaedi</option>
-            <option @if($selected == 'Bukulapuk') selected @endif>Bukulapuk</option>
-            <option @if($selected == 'TokoBagas') selected @endif>TokoBagas</option>
-            <option @if($selected == 'E Commurz') selected @endif>E Commurz</option>
-            <optio @if($selected == 'Blublu') selected @endif>Blublu</option>
+            <option>=== Pilih ===</option>
+            @foreach(['Tokopaedi', 'Bukulapuk', 'TokoBagas', 'E Commurz', 'Blublu'] as $s)
+                <option value="{{ $s }}" @selected($supplier == $s)>{{ $s }}</option>
+            @endforeach
         </select>
     </div>
 
-    @php $selected = $item->jenis ?? ''; @endphp
+    @php $jenis = old('jenis', $item->jenis ?? ''); @endphp
     <div class="form-group">
         <label>Jenis</label>
         <select class="form-control" required name="jenis">
-            <option @if($selected == '') selected @endif value="">--Pilih--</option>
-            <option @if($selected == 'Obat') selected @endif>Obat</option>
-            <option @if($selected == 'Alkes') selected @endif>Alkes</option>
-            <option @if($selected == 'Matkes') selected @endif>Matkes</option>
-            <optio @if($selected == 'Umum') selected @endif>Umum</option>
-            <optio @if($selected == 'ATK') selected @endif>ATK</option>
+            <option>=== Pilih ===</option>
+            @foreach(['Obat', 'Alkes', 'Matkes', 'Umum', 'ATK'] as $j)
+                <option value="{{ $j }}" @selected($jenis == $j)>{{ $j }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Kategori</label>
+        <select name="kategori_id[]" class="form-control" multiple>
+            @foreach($category as $cat)
+                <option value="{{ $cat->id }}" @selected(in_array($cat->id, old('kategori_id', $item->category->pluck('id')->toArray() ?? [])))>{{ $cat->nama }}</option>
+            @endforeach
         </select>
     </div>
 

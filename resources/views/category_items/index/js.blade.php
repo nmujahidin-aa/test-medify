@@ -11,7 +11,7 @@ function formatRupiah(angka) {
 
 $(document).ready(function () {
 
-    table = $('#table-master').DataTable({
+    table = $('#table').DataTable({
         searching: false, // FILTER via AJAX
         ordering: true,
         order: [[0, 'desc']],
@@ -58,6 +58,13 @@ function getData() {
 
                 table.row.add([
                     item.kode ?? '-',
+
+                    item.images
+                        ? `<img src="/storage/${item.images}"
+                               style="width:60px;height:60px;object-fit:cover"
+                               class="img-thumbnail">`
+                        : '<span class="text-muted">No Image</span>',
+
                     item.nama ?? '-',
                     item.jenis ?? '-',
                     formatRupiah(item.harga_beli),
