@@ -39,6 +39,6 @@ Route::prefix('category-items')->name('category-items.')->group(function(){
     Route::get('/form/{method}/{id?}', [App\Http\Controllers\CategoryItemsController::class, 'formView'])->name('form');
     Route::post('/form/{method}/{id?}', [App\Http\Controllers\CategoryItemsController::class, 'formSubmit'])->name('submit');
     Route::get('/view/{kode}', [App\Http\Controllers\CategoryItemsController::class, 'singleView'])->name('view');
-    Route::get('/{id}/pdf', [App\Http\Controllers\CategoryItemsController::class, 'printPdf'])->name('pdf');
+    Route::get('/{id}/print', [App\Http\Controllers\CategoryItemsController::class, 'print'])->name('print');
     Route::delete('/delete/{id}', [App\Http\Controllers\CategoryItemsController::class, 'delete'])->name('delete');
 });

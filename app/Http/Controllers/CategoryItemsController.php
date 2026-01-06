@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Category;
 use App\Models\MasterItem;
 use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 class CategoryItemsController extends Controller
 {
@@ -80,7 +82,7 @@ class CategoryItemsController extends Controller
 
     public function singleView($kode)
     {
-        $data['data'] = $this->category::where('kode', $kode)->firstOrFail();
+        $data['data'] = $this->category::where('kode', $kode)->with('masterItems')->firstOrFail();
         return view($this->view . 'single.index', $data);
     }
 
@@ -93,5 +95,21 @@ class CategoryItemsController extends Controller
             ->with('success', 'Data berhasil dihapus');
     }
 
+    public function print($id)
+    {
+        $category = Category::with('masterItems')->findOrFail($id);
 
+        $data = [
+            'category' => $category,
+            'items' => $category->masterItems,
+            'printed_at' => now()->format('d-m-Y H:i:s'),
+        ];
+
+        $pdf = Pdf::loadView('category_items.single.print', $data)
+                ->setPaper('A4', 'portrait');
+
+        return $pdf->download(
+            'kategori-'.$category->kode.'.pdf'
+        );
+    }
 }

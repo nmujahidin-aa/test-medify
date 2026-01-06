@@ -130,24 +130,6 @@ class MasterItemsController extends Controller
             ->with('success', 'Data berhasil dihapus');
     }
 
-    public function print($id)
-    {
-        $category = $this->category::with('items')->findOrFail($id);
-
-        $data = [
-            'category' => $category,
-            'items' => $category->items,
-            'printed_at' => Carbon::now()->format('d-m-Y H:i:s'),
-        ];
-
-        $pdf = Pdf::loadView('category-items.pdf', $data)
-                ->setPaper('A4', 'portrait');
-
-        return $pdf->download(
-            'kategori-'.$category->kode.'.pdf'
-        );
-    }
-
     public function updateRandomData()
     {
         $data = MasterItem::get();
